@@ -330,6 +330,71 @@ R_API char *r_anal_op_to_string(RAnal *anal, RAnalOp *op) {
 	return strdup (ret);
 }
 
+R_API char *r_anal_op_args_to_json(RAnal *anal, RAnalOp *op) {
+	char ret[256];
+	char *r0 = r_anal_value_to_json (op->dst);
+	char *a0 = r_anal_value_to_json (op->src[0]);
+	char *a1 = r_anal_value_to_json (op->src[1]);
+
+	switch (op->type) {
+	case R_ANAL_OP_TYPE_MOV:
+	case R_ANAL_OP_TYPE_LEA:
+		snprintf (ret, sizeof (ret), "[%s, %s]", r0, a0);
+		break;
+	case R_ANAL_OP_TYPE_CJMP:
+	case R_ANAL_OP_TYPE_JMP:
+	case R_ANAL_OP_TYPE_UJMP:
+	case R_ANAL_OP_TYPE_POP:
+	case R_ANAL_OP_TYPE_UCALL:
+	case R_ANAL_OP_TYPE_CALL:
+	case R_ANAL_OP_TYPE_CCALL:
+		snprintf (ret, sizeof (ret), "[%s]", r0);
+		break;
+	case R_ANAL_OP_TYPE_PUSH:
+	case R_ANAL_OP_TYPE_UPUSH:
+		snprintf (ret, sizeof (ret), "[%s]", a0);
+		break;
+	case R_ANAL_OP_TYPE_ADD:
+	case R_ANAL_OP_TYPE_SUB:
+	case R_ANAL_OP_TYPE_MUL:
+	case R_ANAL_OP_TYPE_DIV:
+	case R_ANAL_OP_TYPE_AND:
+	case R_ANAL_OP_TYPE_OR:
+	case R_ANAL_OP_TYPE_XOR:
+	case R_ANAL_OP_TYPE_MOD:
+	case R_ANAL_OP_TYPE_XCHG:
+		if (a1 == NULL || !strcmp (a0, a1))
+			snprintf (ret, sizeof (ret), "[%s, %s]", r0, a0);
+		else
+			snprintf (ret, sizeof (ret), "[%s, %s, %s]", r0, a0, a1);
+		break;
+	case R_ANAL_OP_TYPE_CMP: // XXX seems odd to have a compare without args
+	case R_ANAL_OP_TYPE_NOP:
+	case R_ANAL_OP_TYPE_RET:
+	case R_ANAL_OP_TYPE_CRET:
+	case R_ANAL_OP_TYPE_LEAVE:
+		break;
+	case R_ANAL_OP_TYPE_ROL:
+	case R_ANAL_OP_TYPE_ROR:
+	case R_ANAL_OP_TYPE_SWITCH:
+	case R_ANAL_OP_TYPE_CASE:
+		eprintf ("Command not implemented.\n");
+		free (r0);
+		free (a0);
+		free (a1);
+		return NULL;
+	default:
+		free (r0);
+		free (a0);
+		free (a1);
+		return NULL;
+	}
+	free (r0);
+	free (a0);
+	free (a1);
+	return strdup (ret);
+}
+
 R_API const char *r_anal_stackop_tostring (int s) {
 	switch (s) {
 	case R_ANAL_STACK_NULL:

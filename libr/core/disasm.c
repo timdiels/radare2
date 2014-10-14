@@ -1962,7 +1962,6 @@ R_API int r_core_print_disasm_instructions (RCore *core, int nb_bytes, int nb_op
 
 R_API int r_core_print_disasm_json(RCore *core, ut64 addr, ut8 *buf, int nb_bytes, int nb_opcodes) {
 	RAsmOp asmop;
-	RAnalOp analop;
 	int i, oplen, ret, line;
 	const ut64 old_offset = core->offset;
 	r_cons_printf ("[");
@@ -2005,7 +2004,10 @@ R_API int r_core_print_disasm_json(RCore *core, ut64 addr, ut8 *buf, int nb_byte
 			i++;
 			continue;
 		}
-		r_anal_op (core->anal, &analop, at, buf+i, nb_bytes-i);
+		RAnalOp analop;
+		//RAnalOp* analop = r_core_anal_op (core, at);
+		core->anal->cur->op(core->anal, &analop, at, buf+i, nb_bytes-i)
+		static int sh_op(RAnal *anal, RAnalOp *op, ut64 addr, const ut8 *data, int len) {
 
 		oplen = r_asm_op_get_size (&asmop);
 		r_cons_printf (i>0? ",{": "{");
@@ -2015,20 +2017,27 @@ R_API int r_core_print_disasm_json(RCore *core, ut64 addr, ut8 *buf, int nb_byte
 		r_cons_printf (",\"opcode\":\"%s\"", escaped_str);
 		r_cons_printf (",\"bytes\":\"%s\"", asmop.buf_hex);
 		//r_cons_printf (",\"family\":\"%s\"", asmop.family);
-		r_cons_printf (",\"type\":\"%s\"", r_anal_optype_to_string (analop.type));
+		r_cons_printf (",\"type\":\"%s\"", r_anal_optype_to_string (analop->type));
 		// wanted the numerical values of the type information
-		r_cons_printf (",\"type_num\":%"PFMT64d, analop.type);
-		r_cons_printf (",\"type2_num\":%"PFMT64d, analop.type2);
+		r_cons_printf (",\"type_num\":%"PFMT64d, analop->type);
+		r_cons_printf (",\"type2_num\":%"PFMT64d, analop->type2);
+		r_cons_printf (",\"mnemonic\":\"%s\"", analop->mnemonic);
+
+		// print instruction args
+		char* args = r_anal_op_args_to_json(core->anal, analop);
+		r_cons_printf (",'args':%s", args);
+		free(args);
+
 		// handle switch statements
-		if (analop.switch_op && r_list_length (analop.switch_op->cases) > 0) {
+		if (analop->switch_op && r_list_length (analop->switch_op->cases) > 0) {
 			// XXX - the java caseop will still be reported in the assembly,
 			// this is an artifact to make ensure the disassembly is properly
 			// represented during the analysis
 			RListIter *iter;
 			RAnalCaseOp *caseop;
-			int cnt = r_list_length (analop.switch_op->cases);
+			int cnt = r_list_length (analop->switch_op->cases);
 			r_cons_printf (", \"switch\":[");
-			r_list_foreach (analop.switch_op->cases, iter, caseop ) {
+			r_list_foreach (analop->switch_op->cases, iter, caseop ) {
 				cnt--;
 				r_cons_printf ("{");
 				r_cons_printf ("\"addr\":%"PFMT64d, caseop->addr);
@@ -2039,16 +2048,18 @@ R_API int r_core_print_disasm_json(RCore *core, ut64 addr, ut8 *buf, int nb_byte
 			}
 			r_cons_printf ("]");
 		}
-		if (analop.jump != UT64_MAX ) {
-			r_cons_printf (",\"next\":%"PFMT64d, analop.jump);
-			if (analop.fail != UT64_MAX)
-				r_cons_printf (",\"fail\":%"PFMT64d, analop.fail);
+		if (analop->jump != UT64_MAX ) {
+			r_cons_printf (",\"next\":%"PFMT64d, analop->jump);
+			if (analop->fail != UT64_MAX)
+				r_cons_printf (",\"fail\":%"PFMT64d, analop->fail);
 		}
 		r_cons_printf ("}");
 		i += oplen;
 		line++;
 		if (nb_opcodes && line>=nb_opcodes)
 			break;
+
+		//free(analop);
 	}
 	r_cons_printf ("]");
 	core->offset = old_offset;

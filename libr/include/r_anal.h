@@ -512,7 +512,7 @@ typedef struct r_anal_t {
 	struct r_anal_esil_t *esil;
 	struct r_anal_plugin_t *cur;
 	//struct list_head anals; // TODO: Reimplement with RList
-	RList *plugins;
+	RList *plugins; // Multiple plugins are available. Only one can be enabled. The enabled plugin is stored in cur
 	Sdb *sdb_xrefs;
 	Sdb *sdb_types;
 	Sdb *sdb_meta; // TODO: Future r_meta api
@@ -958,6 +958,7 @@ R_API int r_anal_op(RAnal *anal, RAnalOp *op, ut64 addr,
 R_API RAnalOp *r_anal_op_hexstr(RAnal *anal, ut64 addr,
 		const char *hexstr);
 R_API char *r_anal_op_to_string(RAnal *anal, RAnalOp *op);
+R_API char *r_anal_op_args_to_json(RAnal *anal, RAnalOp *op);
 
 
 R_API RAnalEsil *r_anal_esil_new();
@@ -1112,6 +1113,7 @@ R_API RAnalValue *r_anal_value_copy (RAnalValue *ov);
 R_API RAnalValue *r_anal_value_new_from_string(const char *str);
 R_API st64 r_anal_value_eval(RAnalValue *value);
 R_API char *r_anal_value_to_string (RAnalValue *value);
+R_API char *r_anal_value_to_json (RAnalValue *value);
 R_API ut64 r_anal_value_to_ut64(RAnal *anal, RAnalValue *val);
 R_API int r_anal_value_set_ut64(RAnal *anal, RAnalValue *val, ut64 num);
 R_API void r_anal_value_free(RAnalValue *value);

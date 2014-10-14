@@ -90,3 +90,26 @@ R_API char *r_anal_value_to_string (RAnalValue *value) {
 	}
 	return out;
 }
+
+R_API char *r_anal_value_to_json (RAnalValue *value) {
+	char *out = NULL;
+	if (value) {
+		out = r_str_new ("{");
+		if (!value->base && !value->reg) {
+			out = r_str_concatf (out, "'imm':%d", value->imm);
+			out = r_str_concatf (out, ",'value':%d", value->imm);
+		} else {
+			out = r_str_concatf (out, "'base_multiplier':%d", value->mul);
+			out = r_str_concatf (out, ",'base_reg':'%s'", value->reg->name);
+			out = r_str_concatf (out, ",'base_num':%d", value->base);
+			out = r_str_concatf (out, ",'delta_reg':'%s'", value->regdelta->name);
+			out = r_str_concatf (out, ",'delta_num':%d", value->delta);
+			if (!value->reg && !value->regdelta) out = r_str_concatf (out, ",'value':%d", value->mul * value->base + value->delta);
+			if (value->memref) {
+				out = r_str_concatf (out, ",'memref':%d", value->memref);
+			}
+		}
+		out = r_str_concat (out, "}");
+	}
+	return out;
+}
